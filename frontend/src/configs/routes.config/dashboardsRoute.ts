@@ -1,0 +1,96 @@
+import { lazy } from 'react'
+import { DASHBOARDS_PREFIX_PATH } from '@/constants/route.constant'
+import { ADMIN, USER, MECHANIC } from '@/constants/roles.constant'
+import type { Routes } from '@/@types/routes'
+
+const dashboardsRoute: Routes = [
+    {
+        key: 'dashboard.ecommerce',
+        path: `${DASHBOARDS_PREFIX_PATH}/user`,
+        component: lazy(() => import('@/views/dashboards/UsersDashboard')),
+        authority: [ADMIN],
+        meta: {
+            pageContainerType: 'contained',
+        },
+    },
+   {
+    key: 'dashboard.vehicleDetails',
+    path: `${DASHBOARDS_PREFIX_PATH}/vehicle/:id`,
+    component: lazy(() => import('@/views/dashboards/VehicleDashboard/VehicleDetails')),
+    authority: [ADMIN],
+    meta: {
+        pageContainerType: 'contained',
+    },
+},
+{
+    key: 'dashboard.project',
+    path: `${DASHBOARDS_PREFIX_PATH}/vehicle`,
+    component: lazy(() => import('@/views/dashboards/VehicleDashboard')),
+    authority: [ADMIN],
+    meta: {
+        pageContainerType: 'contained',
+    },
+},
+    {
+        key: 'dashboard.marketing',
+        path: `${DASHBOARDS_PREFIX_PATH}/marketing`,
+        component: lazy(() => import('@/views/dashboards/MarketingDashboard')),
+        authority: [ADMIN, USER],
+        meta: {
+            pageContainerType: 'contained',
+        },
+    },
+    {
+        key: 'dashboard.analytic',
+        path: `${DASHBOARDS_PREFIX_PATH}/analytic`,
+        component: lazy(() => import('@/views/dashboards/Dashboard')),
+        authority: [USER,ADMIN],
+        meta: {
+            pageContainerType: 'contained',
+            pageBackgroundType: 'plain',
+        },
+    },
+     {
+        key: 'dashboard.mechanics',
+        path: `${DASHBOARDS_PREFIX_PATH}/mechanics`,
+        component: lazy(() => import('@/views/dashboards/MechanicsDashboard')) as any,
+        authority: [USER,ADMIN],
+        meta: {
+            pageContainerType: 'contained',
+            pageBackgroundType: 'plain',
+        },
+    },
+    {
+        key: 'dashboard.mechanicscalender',
+        path: `${DASHBOARDS_PREFIX_PATH}/mechanicscalender`,
+        component: lazy(() => import('@/views/dashboards/MechanicSpace')) as any,
+        authority: [MECHANIC],
+        meta: {
+            pageContainerType: 'contained',
+            pageBackgroundType: 'plain',
+        },
+    },
+      {
+        key: 'dashboard.anomaly',
+        path: `${DASHBOARDS_PREFIX_PATH}/anomaly`,
+        component: lazy(() => import('@/views/concepts/VehicleAnomaly')) as any,
+        authority: [USER,ADMIN],
+        meta: {
+            pageContainerType: 'contained',
+            pageBackgroundType: 'plain',
+        },
+    },
+
+      {
+    key: 'dashboard.forecast',
+    path: `${DASHBOARDS_PREFIX_PATH}/forecast/:id`,
+    component: lazy(() => import('@/views/dashboards/ForecastDashboard')) as any,
+    authority: [USER, ADMIN],
+    meta: {
+        pageContainerType: 'contained',
+        pageBackgroundType: 'plain',
+    },
+},
+]
+
+export default dashboardsRoute

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { FormItem, Form } from '@/components/ui/Form'
@@ -10,7 +11,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { CommonProps } from '@/@types/common'
 import type { ReactNode } from 'react'
-// ← import { result } from 'lodash' supprimé
 
 interface SignInFormProps extends CommonProps {
     disableSubmit?: boolean
@@ -29,6 +29,8 @@ const validationSchema = z.object({
 })
 
 const SignInForm = (props: SignInFormProps) => {
+    const navigate = useNavigate()
+
     const [isSubmitting, setSubmitting] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
 
@@ -53,20 +55,23 @@ const SignInForm = (props: SignInFormProps) => {
         setMessage?.('')
 
         try {
-            const result = await signIn({ email: values.email, password: values.password })
+            const result = await signIn({
+                email: values.email,
+                password: values.password,
+            })
 
             if (result.status === 'success') {
-    console.log('result.user:', result.user) 
-    
-    if (result.user?.role === 'ADMIN') {
-        window.location.href = '/dashboards/user'
-    } else {
-        window.location.href = '/dashboards/analytic'
-    }
-}
-            
+                console.log('result.user:', result.user)
+
+                if (result.user?.role === 'ADMIN') {
+                    navigate('/dashboards/user')
+                } else {
+                    navigate('/dashboards/analytic')
+                }
+            }
         } catch (err: any) {
             setMessage?.(err?.message || 'Something went wrong')
+            setErrorMessage(err?.message || 'Something went wrong')
         } finally {
             setSubmitting(false)
         }
@@ -84,7 +89,12 @@ const SignInForm = (props: SignInFormProps) => {
                         name="email"
                         control={control}
                         render={({ field }) => (
-                            <Input type="email" placeholder="Email" autoComplete="off" {...field} />
+                            <Input
+                                type="email"
+                                placeholder="Email"
+                                autoComplete="off"
+                                {...field}
+                            />
                         )}
                     />
                 </FormItem>
@@ -102,7 +112,11 @@ const SignInForm = (props: SignInFormProps) => {
                         name="password"
                         control={control}
                         render={({ field }) => (
-                            <PasswordInput placeholder="Password" autoComplete="off" {...field} />
+                            <PasswordInput
+                                placeholder="Password"
+                                autoComplete="off"
+                                {...field}
+                            />
                         )}
                     />
                 </FormItem>
@@ -110,10 +124,18 @@ const SignInForm = (props: SignInFormProps) => {
                 {passwordHint}
 
                 {errorMessage && (
-                    <div className="text-red-500 mb-4 text-sm">{errorMessage}</div>
+                    <div className="text-red-500 mb-4 text-sm">
+                        {errorMessage}
+                    </div>
                 )}
 
-                <Button block loading={isSubmitting} type="submit" variant="solid">
+                <Button
+                    block
+                    loading={isSubmitting}
+                    type="submit"
+                    variant="solid"
+                    disabled={disableSubmit}
+                >
                     {isSubmitting ? 'Signing in...' : 'Sign In'}
                 </Button>
             </Form>

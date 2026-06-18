@@ -859,14 +859,7 @@ export const searchQueryPoolData = [
         category: 'Documentation',
         categoryTitle: 'Guide',
     },
-    {
-        key: 'documentation.firebase',
-        path: `${GUIDE_PREFIX_PATH}/documentation/firebase`,
-        title: 'Firebase',
-        icon: 'documentation',
-        category: 'Documentation',
-        categoryTitle: 'Guide',
-    },
+    
     {
         key: 'documentation.app',
         path: `${GUIDE_PREFIX_PATH}/documentation/app`,

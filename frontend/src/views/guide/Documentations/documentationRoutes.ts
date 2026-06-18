@@ -75,13 +75,7 @@ const documentationRoutes: DocumentationRoute[] = [
                 label: 'Mock Api',
                 component: lazy(() => import('./components/MockApi')),
             },
-            {
-                path: 'firebase',
-                label: 'Firebase',
-                component: lazy(
-                    () => import('./components/FirebaseIntegration'),
-                ),
-            },
+          
         ],
     },
     {

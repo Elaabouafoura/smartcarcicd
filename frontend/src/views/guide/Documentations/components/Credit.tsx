@@ -118,11 +118,7 @@ const packages = [
     { name: 'd3-fetch', url: 'https://github.com/d3/d3-fetch', license: 'ISC' },
     { name: 'd3-dsv', url: 'https://github.com/d3/d3-dsv', license: 'ISC' },
     { name: 'd3-scale', url: 'https://github.com/d3/d3-scale', license: 'ISC' },
-    {
-        name: 'firebase',
-        url: 'https://github.com/firebase/firebase-js-sdk',
-        license: 'Apache',
-    },
+   
     {
         name: 'framer-motion',
         url: 'https://github.com/framer/motion',

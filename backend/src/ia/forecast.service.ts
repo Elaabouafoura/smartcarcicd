@@ -108,7 +108,9 @@ export class ForecastService {
         this.http.post<FastApiForcastResponse>(
           `${this.fastapiBase}/api/predict/forecast`,
           { data: agg.sequence },
-          { timeout: 60_000 },
+          { timeout: 60_000,
+            headers: { 'Content-Type': 'application/json' }
+           },
         ),
       );
       fastApiResponse = data;

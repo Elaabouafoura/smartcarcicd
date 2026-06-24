@@ -266,8 +266,8 @@ const ForecastDashboard = () => {
             setLoading(true)
             setError(false)
             const { data } = await axios.get(
-                `http://localhost:3000/api/v1/vehicles/${id}/forecast`,
-            )
+             `${import.meta.env.VITE_API_URL}/vehicles/${id}/forecast`,  
+             )
             setForecast(data)
         } catch (e) {
             console.error('Forecast Error:', e)

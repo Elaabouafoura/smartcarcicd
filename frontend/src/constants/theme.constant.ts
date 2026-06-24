@@ -3,8 +3,8 @@ export const DIR_LTR = 'ltr'
 export const MODE_LIGHT = 'light'
 export const MODE_DARK = 'dark'
 
-export const SIDE_NAV_WIDTH = 290
-export const SIDE_NAV_COLLAPSED_WIDTH = 80
+export const SIDE_NAV_WIDTH = 250
+export const SIDE_NAV_COLLAPSED_WIDTH = 70
 export const SPLITTED_SIDE_NAV_MINI_WIDTH = 80
 export const STACKED_SIDE_NAV_SECONDARY_WIDTH = 270
 export const SIDE_NAV_CONTENT_GUTTER = 'px-2'

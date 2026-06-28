@@ -101,7 +101,7 @@ const BookingDrawer = ({
                                     display: 'inline-block',
                                 }}
                             />
-                            Rendez-vous
+                            Appointment
                         </div>
                         <h3
                             style={{
@@ -163,7 +163,7 @@ const BookingDrawer = ({
                                 color: '#94A3B8',
                             }}
                         >
-                            Horaire
+                            Time
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -174,17 +174,17 @@ const BookingDrawer = ({
                             />
                             <Row
                                 icon="🕐"
-                                label="Début"
+                                label="Start"
                                 value={start.format('HH:mm')}
                             />
                             <Row
                                 icon="🕓"
-                                label="Fin"
+                                label="End"
                                 value={end.format('HH:mm')}
                             />
                             <Row
                                 icon="⏱"
-                                label="Durée"
+                                label="Duration"
                                 value={
                                     hours > 0
                                         ? `${hours}h${minutes > 0 ? ` ${minutes}min` : ''}`
@@ -215,17 +215,17 @@ const BookingDrawer = ({
                                     color: '#94A3B8',
                                 }}
                             >
-                                Véhicule
+                                Vehicle
                             </p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {vehicleLabel && (
-                                    <Row icon="🚗" label="Modèle" value={vehicleLabel} />
+                                    <Row icon="" label="Model" value={vehicleLabel} />
                                 )}
                                 {vehicle.plateNumber && (
                                     <Row
-                                        icon="🪪"
-                                        label="Immatriculation"
+                                        icon=""
+                                        label="Plate number"
                                         value={
                                             <span
                                                 style={{
@@ -248,16 +248,7 @@ const BookingDrawer = ({
                     )}
 
                     {/* Booking ID */}
-                    <p
-                        style={{
-                            fontSize: 11,
-                            color: '#CBD5E1',
-                            margin: 0,
-                            letterSpacing: '0.02em',
-                        }}
-                    >
-                        ID&nbsp;: {booking.id}
-                    </p>
+                   
                 </div>
 
                 {/* Footer */}
@@ -283,7 +274,7 @@ const BookingDrawer = ({
                             cursor: 'pointer',
                         }}
                     >
-                        Fermer
+                                        Close
                     </button>
                 </div>
             </div>
@@ -422,7 +413,8 @@ const MechanicSpace = () => {
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <h5 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
-                            Mes rendez-vous
+                            My appointments
+
                         </h5>
                         {loadingCalendar && (
                             <span
@@ -460,7 +452,8 @@ const MechanicSpace = () => {
                                 display: 'inline-block',
                             }}
                         />
-                        {bookingEvents.length} rendez-vous cette semaine
+                        {bookingEvents.length}  appointments this week 
+ 
                     </div>
                 </div>
 

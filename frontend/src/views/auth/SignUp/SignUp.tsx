@@ -25,7 +25,7 @@ export const SignUpBase = ({
                     type="streamline"
                     mode={mode}
                     imgClass="mx-auto"
-                    logoWidth={60}
+                    logoWidth={160}
                 />
             </div>
             <div className="mb-8">

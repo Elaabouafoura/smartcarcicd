@@ -19,8 +19,8 @@ const Logo = (props: LogoProps) => {
         className,
         imgClass,
         style,
-        logoWidth = 180,
-        logoHeight = 100, 
+        logoWidth = 300,
+        logoHeight = 140,   
     } = props
 
     return (
@@ -40,7 +40,7 @@ const Logo = (props: LogoProps) => {
                 style={{
                     width: logoWidth,
                     height: logoHeight,
-                    objectFit: 'contain', // 🔥 évite déformation
+                    objectFit: 'contain', 
                 }}
                 src={`${LOGO_SRC_PATH}logo-${mode}-${type}.png`}
                 alt={`${APP_NAME} logo`}

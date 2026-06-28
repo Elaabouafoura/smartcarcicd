@@ -396,8 +396,8 @@ function ActionCard({ action, expanded, onToggle }: { action: RecommendationActi
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                         {action.diagnosis && <span>{action.diagnosis}</span>}
-                        {action.diagnosis && action.car_name && <span>•</span>}
-                        {action.car_name && <span>{action.car_name}</span>}
+                        
+                        
                     </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -425,19 +425,12 @@ function ActionCard({ action, expanded, onToggle }: { action: RecommendationActi
                         <div className="mb-3 grid grid-cols-5 gap-2">
                             <ScoreItem label="Final" value={action.final_score} />
                             <ScoreItem label="Similarity" value={action.similarity_score} />
-                            <ScoreItem label="Fault match" value={action.fault_match_score} />
+                            
                             <ScoreItem label="ML risk" value={action.ml_risk_score} />
                             <ScoreItem label="Confidence" value={action.confidence} />
                         </div>
                     )}
-                    {action.reasoning && (
-                        <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-500/10">
-                            <div className="mb-1 flex items-center gap-1 text-xs font-semibold text-blue-700 dark:text-blue-400">
-                                <PiBrainFill size={12} /> ML reasoning
-                            </div>
-                            <div className="text-xs text-blue-800 dark:text-blue-300">{action.reasoning}</div>
-                        </div>
-                    )}
+                    
                 </div>
             )}
         </div>
@@ -645,7 +638,11 @@ export default function MLPredictionsDashboard() {
                                             <PiWarningCircleFill className="inline mr-1" size={12} /> {vehiclesError}
                                         </div>
                                     ) : (
-                                        <div className="relative">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                Select Vehicle:
+                                            </span>
+                                            <div className="relative">
                                             <select 
                                                 value={selectedVehicleId ?? ''} 
                                                 disabled={vehiclesLoading} 
@@ -657,6 +654,7 @@ export default function MLPredictionsDashboard() {
                                                 {vehicles.map(v => <option key={v.id} value={v.id}>{vehicleLabel(v)}</option>)}
                                             </select>
                                             <PiArrowDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        </div>
                                         </div>
                                     )}
                                    

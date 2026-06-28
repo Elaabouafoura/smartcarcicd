@@ -37,6 +37,7 @@ import {
     apiUpdateMaintenanceAppointment,
 } from '@/services/DashboardService'
 import type { DateSelectArg, DatesSetArg } from '@fullcalendar/core'
+import { apiGetAllRecommendations } from '@/services/AnomalyService'
 
 type Mechanic = {
     id: string
@@ -116,12 +117,18 @@ const getIsAdmin = () => {
     }
 }
 
-const MechanicsDashboard = () => {
+// ─── Props ────────────────────────────────────────────────────────────────────
+type MechanicsDashboardProps = {
+    aiRecommendedComponents?: string[] // ex: ['engine', 'brakes', 'cooling_system']
+}
+
+const MechanicsDashboard = ({ aiRecommendedComponents = [] }: MechanicsDashboardProps) => {
     const isAdmin = useMemo(() => getIsAdmin(), [])
 
     const [mechanics, setMechanics] = useState<Mechanic[]>([])
     const [vehicles, setVehicles] = useState<Vehicle[]>([])
     const [maintenances, setMaintenances] = useState<Maintenance[]>([])
+    const [recommendedActions, setRecommendedActions] = useState<string[]>([])
 
     const [query, setQuery] = useState('')
     const [loading, setLoading] = useState(false)
@@ -131,13 +138,9 @@ const MechanicsDashboard = () => {
     const [calendarOpen, setCalendarOpen] = useState(false)
     const [appointmentOpen, setAppointmentOpen] = useState(false)
     const [manageDialogOpen, setManageDialogOpen] = useState(false)
-    const [editingMechanic, setEditingMechanic] = useState<Mechanic | null>(
-        null,
-    )
+    const [editingMechanic, setEditingMechanic] = useState<Mechanic | null>(null)
 
-    const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(
-        null,
-    )
+    const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null)
 
     const [selectedSlot, setSelectedSlot] = useState<{
         start: string
@@ -172,18 +175,13 @@ const MechanicsDashboard = () => {
 
     const loadMechanics = async () => {
         setLoading(true)
-
         try {
             const data = isAdmin
                 ? await apiGetAdminMechanics<Mechanic[]>()
                 : await apiGetMechanics<Mechanic[]>()
-
             setMechanics(Array.isArray(data) ? data : [])
         } catch (error: any) {
-            console.error(
-                'Erreur chargement mécaniciens:',
-                error?.response?.data || error,
-            )
+            console.error('Erreur chargement mécaniciens:', error?.response?.data || error)
             setMechanics([])
         } finally {
             setLoading(false)
@@ -192,25 +190,18 @@ const MechanicsDashboard = () => {
 
     const loadVehicles = async () => {
         try {
-            const response = await apiGetMyVehicles<
-                Vehicle[] | { data: Vehicle[] }
-            >({
+            const response = await apiGetMyVehicles<Vehicle[] | { data: Vehicle[] }>({
                 page: 1,
                 limit: 100,
             })
-
             const list = Array.isArray(response)
                 ? response
                 : Array.isArray(response?.data)
                   ? response.data
                   : []
-
             setVehicles(list)
         } catch (error: any) {
-            console.error(
-                'Erreur chargement véhicules:',
-                error?.response?.data || error,
-            )
+            console.error('Erreur chargement véhicules:', error?.response?.data || error)
             setVehicles([])
         }
     }
@@ -222,13 +213,7 @@ const MechanicsDashboard = () => {
 
     const openAddMechanic = () => {
         setEditingMechanic(null)
-        reset({
-            name: '',
-            specialty: '',
-            phone: '',
-            location: '',
-            isActive: true,
-        })
+        reset({ name: '', specialty: '', phone: '', location: '', isActive: true })
         setManageDialogOpen(true)
     }
 
@@ -251,46 +236,30 @@ const MechanicsDashboard = () => {
 
     const submitMechanic = async (data: MechanicForm) => {
         if (!isAdmin) return
-
         if (editingMechanic) {
             await apiUpdateMechanic(editingMechanic.id, data)
         } else {
             await apiCreateMechanic(data)
         }
-
         await loadMechanics()
         closeManageDialog()
     }
 
     const removeMechanic = async (mechanicId: string) => {
         if (!isAdmin) return
-
-        const confirmed = window.confirm(
-            'Voulez-vous vraiment supprimer ce mécanicien ?',
-        )
-
+        const confirmed = window.confirm('Voulez-vous vraiment supprimer ce mécanicien ?')
         if (!confirmed) return
-
         await apiDeleteMechanic(mechanicId)
         await loadMechanics()
     }
 
-    const toggleMechanicStatus = async (
-        isActive: boolean,
-        mechanic: Mechanic,
-    ) => {
+    const toggleMechanicStatus = async (isActive: boolean, mechanic: Mechanic) => {
         if (!isAdmin) return
-
-        await apiUpdateMechanic(mechanic.id, {
-            isActive,
-        })
-
+        await apiUpdateMechanic(mechanic.id, { isActive })
         await loadMechanics()
     }
 
-    const normalizeBookingList = (
-        response: Booking[] | { data: Booking[] },
-    ): Booking[] => {
+    const normalizeBookingList = (response: Booking[] | { data: Booking[] }): Booking[] => {
         if (Array.isArray(response)) return response
         if (Array.isArray(response?.data)) return response.data
         return []
@@ -302,37 +271,25 @@ const MechanicsDashboard = () => {
         endDate?: string,
     ) => {
         if (!isUuid(mechanicId)) return
-
         setCalendarLoading(true)
-
         try {
             const start = dayjs(startDate)
             const end = endDate ? dayjs(endDate) : start.add(1, 'day')
-
             const days: string[] = []
             let current = start
-
             while (current.isBefore(end, 'day')) {
                 days.push(current.format('YYYY-MM-DD'))
                 current = current.add(1, 'day')
             }
-
-            if (days.length === 0) {
-                days.push(start.format('YYYY-MM-DD'))
-            }
+            if (days.length === 0) days.push(start.format('YYYY-MM-DD'))
 
             const results = await Promise.all(
                 days.map((date) =>
-                    apiGetMechanicAllBookings<
-                        Booking[] | { data: Booking[] }
-                    >(mechanicId, date),
+                    apiGetMechanicAllBookings<Booking[] | { data: Booking[] }>(mechanicId, date),
                 ),
             )
 
-            const bookingList = results.flatMap((result) =>
-                normalizeBookingList(result),
-            )
-
+            const bookingList = results.flatMap((result) => normalizeBookingList(result))
             setBookingEvents(
                 bookingList.map((booking) => ({
                     id: booking.id,
@@ -351,10 +308,7 @@ const MechanicsDashboard = () => {
                 })),
             )
         } catch (error: any) {
-            console.error(
-                'Erreur chargement réservations:',
-                error?.response?.data || error,
-            )
+            console.error('Erreur chargement réservations:', error?.response?.data || error)
             setBookingEvents([])
         } finally {
             setCalendarLoading(false)
@@ -382,60 +336,37 @@ const MechanicsDashboard = () => {
 
     const handleDatesSet = async (arg: DatesSetArg) => {
         if (!selectedMechanic) return
-
         const start = dayjs(arg.start).format('YYYY-MM-DD')
         const end = dayjs(arg.end).format('YYYY-MM-DD')
-
         setVisibleStartDate(start)
         setVisibleEndDate(end)
-
         await loadMechanicBookings(selectedMechanic.id, start, end)
     }
 
     const isSlotOverlapping = (start: string, end: string) => {
         const slotStart = dayjs(start)
         const slotEnd = dayjs(end)
-
         return bookingEvents.some((event) => {
             const eventStart = dayjs(event.start)
             const eventEnd = dayjs(event.end)
-
             return slotStart.isBefore(eventEnd) && slotEnd.isAfter(eventStart)
         })
     }
 
     const buildSlot = (date: Date, hourValue: string) => {
         const [hour, minute] = hourValue.split(':').map(Number)
-
-        const start = dayjs(date)
-            .hour(hour)
-            .minute(minute || 0)
-            .second(0)
-            .millisecond(0)
-
+        const start = dayjs(date).hour(hour).minute(minute || 0).second(0).millisecond(0)
         const end = start.add(1, 'hour')
-
-        return {
-            start: start.format(),
-            end: end.format(),
-        }
+        return { start: start.format(), end: end.format() }
     }
 
     const getHourOptions = (date: Date | null): Option[] => {
         if (!date) return []
-
         const options: Option[] = []
-
         for (let hour = 8; hour < 17; hour++) {
-            const start = dayjs(date)
-                .hour(hour)
-                .minute(0)
-                .second(0)
-                .millisecond(0)
-
+            const start = dayjs(date).hour(hour).minute(0).second(0).millisecond(0)
             const end = start.add(1, 'hour')
             const isReserved = isSlotOverlapping(start.format(), end.format())
-
             if (!isReserved) {
                 options.push({
                     value: start.format('HH:mm'),
@@ -443,24 +374,17 @@ const MechanicsDashboard = () => {
                 })
             }
         }
-
         return options
     }
 
     const handleSelectSlot = (event: DateSelectArg) => {
         const start = dayjs(event.start)
         const end = start.add(1, 'hour')
-
         if (isSlotOverlapping(start.format(), end.format())) {
             alert('Ce créneau est déjà réservé.')
             return
         }
-
-        const slot = {
-            start: start.format(),
-            end: end.format(),
-        }
-
+        const slot = { start: start.format(), end: end.format() }
         setSelectedSlot(slot)
         setSelectedDate(start.toDate())
         setSelectedHour(start.format('HH:mm'))
@@ -474,11 +398,8 @@ const MechanicsDashboard = () => {
         setSelectedDate(date)
         setSelectedHour('')
         setSelectedSlot(null)
-
         if (!date || !selectedMechanic) return
-
         const selectedDay = dayjs(date).format('YYYY-MM-DD')
-
         await loadMechanicBookings(
             selectedMechanic.id,
             selectedDay,
@@ -488,64 +409,119 @@ const MechanicsDashboard = () => {
 
     const handleHourChange = (option: Option | null) => {
         const hour = option?.value || ''
-
         setSelectedHour(hour)
-
         if (!selectedDate || !hour) {
             setSelectedSlot(null)
             return
         }
-
         const slot = buildSlot(selectedDate, hour)
-
         if (isSlotOverlapping(slot.start, slot.end)) {
             alert('Ce créneau est déjà réservé.')
             setSelectedHour('')
             setSelectedSlot(null)
             return
         }
-
         setSelectedSlot(slot)
     }
 
+    // ─── handleVehicleChange — tri par priorité ───────────────────────────────
     const handleVehicleChange = async (option: Option | null) => {
-        const vehicleId = option?.value || ''
+    const vehicleId = option?.value || ''
 
-        setSelectedVehicleId(vehicleId)
-        setSelectedMaintenanceId('')
-        setMaintenances([])
+    setSelectedVehicleId(vehicleId)
+    setSelectedMaintenanceId('')
+    setMaintenances([])
+    setRecommendedActions([])
 
-        if (!vehicleId) return
+    if (!vehicleId) return
 
-        try {
-            const response = await apiGetVehicleMaintenances<
-                Maintenance[] | { data: Maintenance[] }
-            >(vehicleId)
+    try {
+        // ===========================
+        // Scheduled maintenances
+        // ===========================
+        const response = await apiGetVehicleMaintenances<
+            Maintenance[] | { data: Maintenance[] }
+        >(vehicleId)
 
-            const list = Array.isArray(response)
-                ? response
-                : Array.isArray(response?.data)
-                  ? response.data
-                  : []
+        const list: Maintenance[] = Array.isArray(response)
+            ? response
+            : Array.isArray((response as any)?.data)
+              ? (response as any).data
+              : []
 
-            setMaintenances(list)
-        } catch (error: any) {
-            console.error(
-                'Erreur chargement maintenances:',
-                error?.response?.data || error,
+        const today = new Date()
+
+        const withFutureDueDate = list
+            .filter(
+                (m) =>
+                    m.next_due_date &&
+                    new Date(m.next_due_date) >= today,
             )
-            setMaintenances([])
-        }
+            .sort(
+                (a, b) =>
+                    new Date(a.next_due_date!).getTime() -
+                    new Date(b.next_due_date!).getTime(),
+            )
+
+        const withPastDueDate = list
+            .filter(
+                (m) =>
+                    m.next_due_date &&
+                    new Date(m.next_due_date) < today,
+            )
+            .sort(
+                (a, b) =>
+                    new Date(b.next_due_date!).getTime() -
+                    new Date(a.next_due_date!).getTime(),
+            )
+
+        const withoutDueDate = list.filter(
+            (m) => !m.next_due_date,
+        )
+
+        const merged = [
+            ...withFutureDueDate,
+            ...withPastDueDate,
+            ...withoutDueDate,
+        ].slice(0, 4)
+
+        setMaintenances(merged)
+
+        // ===========================
+        // AI recommendations
+        // ===========================
+
+        const recommendationResponse =
+            await apiGetAllRecommendations(vehicleId)
+
+        const actions =
+            recommendationResponse?.recommendations?.flatMap(
+                (component: any) => {
+                    const recommendations =
+                        component.recommendations
+                            ?.recommendations || []
+
+                    return recommendations.map(
+                        (item: any) => item.action,
+                    )
+                },
+            ) || []
+
+        setRecommendedActions(actions)
+    } catch (error: any) {
+        console.error(error)
+
+        setMaintenances([])
+        setRecommendedActions([])
     }
+}
 
     const confirmAppointment = async () => {
         if (!selectedMechanic || !selectedSlot) return
-
         if (isSlotOverlapping(selectedSlot.start, selectedSlot.end)) {
             alert('Ce créneau est déjà réservé.')
             return
         }
-
         if (
             !isUuid(selectedMechanic.id) ||
             !isUuid(selectedVehicleId) ||
@@ -554,9 +530,7 @@ const MechanicsDashboard = () => {
             alert('Veuillez choisir un véhicule et une maintenance.')
             return
         }
-
         setSaving(true)
-
         try {
             await apiUpdateMaintenanceAppointment(
                 selectedVehicleId,
@@ -567,7 +541,6 @@ const MechanicsDashboard = () => {
                     appointmentEnd: selectedSlot.end,
                 },
             )
-
             setAppointmentOpen(false)
             setSelectedSlot(null)
             setSelectedDate(null)
@@ -575,13 +548,8 @@ const MechanicsDashboard = () => {
             setSelectedVehicleId('')
             setSelectedMaintenanceId('')
             setMaintenances([])
-
             if (visibleStartDate && visibleEndDate) {
-                await loadMechanicBookings(
-                    selectedMechanic.id,
-                    visibleStartDate,
-                    visibleEndDate,
-                )
+                await loadMechanicBookings(selectedMechanic.id, visibleStartDate, visibleEndDate)
             }
         } catch (error: any) {
             alert(
@@ -595,31 +563,45 @@ const MechanicsDashboard = () => {
 
     const filteredMechanics = useMemo(() => {
         const search = query.trim().toLowerCase()
-
         if (!search) return mechanics
-
-        return mechanics.filter((mechanic) => {
-            return (
-                mechanic.name.toLowerCase().includes(search) ||
-                mechanic.specialty?.toLowerCase().includes(search) ||
-                mechanic.phone?.toLowerCase().includes(search) ||
-                mechanic.location?.toLowerCase().includes(search)
-            )
-        })
+        return mechanics.filter((mechanic) =>
+            mechanic.name.toLowerCase().includes(search) ||
+            mechanic.specialty?.toLowerCase().includes(search) ||
+            mechanic.phone?.toLowerCase().includes(search) ||
+            mechanic.location?.toLowerCase().includes(search),
+        )
     }, [mechanics, query])
 
     const vehicleOptions: Option[] = vehicles.map((vehicle) => ({
         value: vehicle.id,
         label:
-            [vehicle.make, vehicle.model, vehicle.plateNumber]
-                .filter(Boolean)
-                .join(' - ') || `Véhicule ${vehicle.id}`,
+            [vehicle.make, vehicle.model, vehicle.plateNumber].filter(Boolean).join(' - ') ||
+            `Véhicule ${vehicle.id}`,
     }))
 
-    const maintenanceOptions: Option[] = maintenances.map((maintenance) => ({
-        value: maintenance.id,
-        label: maintenance.service_type || 'Maintenance',
-    }))
+    // ─── maintenanceOptions avec badges ──────────────────────────────────────
+const maintenanceOptions = [
+    {
+        label: '📅 Scheduled Maintenance',
+        options: maintenances.map((maintenance) => ({
+            value: maintenance.id,
+            label: `${maintenance.service_type || 'Maintenance'}${
+                maintenance.next_due_date
+                    ? ` (Next due: ${dayjs(
+                          maintenance.next_due_date,
+                      ).format('DD/MM/YYYY')})`
+                    : ''
+            }`,
+        })),
+    },
+    {
+        label: '🧠 AI Recommended Maintenance',
+        options: recommendedActions.map((action, index) => ({
+            value: `recommendation-${index}`,
+            label: action,
+        })),
+    },
+]
 
     const hourOptions = getHourOptions(selectedDate)
 
@@ -635,8 +617,6 @@ const MechanicsDashboard = () => {
                                 : 'Click on the icon to view the calendar.'}
                         </p>
                     </div>
-
-                  
                 </div>
 
                 <DebouceInput
@@ -644,7 +624,6 @@ const MechanicsDashboard = () => {
                     suffix={<TbSearch className="text-lg" />}
                     onChange={(event) => {
                         const value = event.target.value
-
                         if (value.length > 1 || value.length === 0) {
                             setQuery(value)
                         }
@@ -653,9 +632,7 @@ const MechanicsDashboard = () => {
             </div>
 
             {loading ? (
-                <div className="py-8 text-center text-gray-500">
-                    Loading...
-                </div>
+                <div className="py-8 text-center text-gray-500">Loading...</div>
             ) : (
                 <Table hoverable={false}>
                     <THead>
@@ -681,26 +658,18 @@ const MechanicsDashboard = () => {
                                             icon={
                                                 <button
                                                     type="button"
-                                                    onClick={() =>
-                                                        openCalendar(mechanic)
-                                                    }
+                                                    onClick={() => openCalendar(mechanic)}
                                                     className="text-2xl heading-text"
                                                 >
                                                     <TbTool />
                                                 </button>
                                             }
                                         />
-
                                         <div>
-                                            <div className="heading-text font-bold">
-                                                {mechanic.name}
-                                            </div>
-
+                                            <div className="heading-text font-bold">{mechanic.name}</div>
                                             {mechanic.createdAt && (
                                                 <div className="text-xs text-gray-500">
-                                                    {dayjs(
-                                                        mechanic.createdAt,
-                                                    ).format('DD MMM YYYY')}
+                                                    {dayjs(mechanic.createdAt).format('DD MMM YYYY')}
                                                 </div>
                                             )}
                                         </div>
@@ -708,32 +677,20 @@ const MechanicsDashboard = () => {
                                 </Td>
 
                                 <Td>
-                                    {mechanic.specialty || (
-                                        <span className="text-gray-400">
-                                            N/A
-                                        </span>
-                                    )}
+                                    {mechanic.specialty || <span className="text-gray-400">N/A</span>}
                                 </Td>
 
                                 <Td>
                                     <div className="flex items-center gap-2">
                                         <TbPhone />
-                                        {mechanic.phone || (
-                                            <span className="text-gray-400">
-                                                N/A
-                                            </span>
-                                        )}
+                                        {mechanic.phone || <span className="text-gray-400">N/A</span>}
                                     </div>
                                 </Td>
 
                                 <Td>
                                     <div className="flex items-center gap-2">
                                         <TbMapPin />
-                                        {mechanic.location || (
-                                            <span className="text-gray-400">
-                                                N/A
-                                            </span>
-                                        )}
+                                        {mechanic.location || <span className="text-gray-400">N/A</span>}
                                     </div>
                                 </Td>
 
@@ -741,24 +698,15 @@ const MechanicsDashboard = () => {
                                     {isAdmin ? (
                                         <Switcher
                                             checked={mechanic.isActive}
-                                            onChange={(value) =>
-                                                toggleMechanicStatus(
-                                                    value,
-                                                    mechanic,
-                                                )
-                                            }
+                                            onChange={(value) => toggleMechanicStatus(value, mechanic)}
                                         />
                                     ) : (
                                         <Tag
                                             className={classNames(
-                                                mechanic.isActive
-                                                    ? 'bg-emerald-200'
-                                                    : 'bg-gray-200',
+                                                mechanic.isActive ? 'bg-emerald-200' : 'bg-gray-200',
                                             )}
                                         >
-                                            {mechanic.isActive
-                                                ? 'Disponible'
-                                                : 'Désactivé'}
+                                            {mechanic.isActive ? 'Available' : 'Désactivé'}
                                         </Tag>
                                     )}
                                 </Td>
@@ -769,17 +717,12 @@ const MechanicsDashboard = () => {
                                             <Button
                                                 size="xs"
                                                 icon={<TbEdit />}
-                                                onClick={() =>
-                                                    openEditMechanic(mechanic)
-                                                }
+                                                onClick={() => openEditMechanic(mechanic)}
                                             />
-
                                             <Button
                                                 size="xs"
                                                 icon={<TbTrash />}
-                                                onClick={() =>
-                                                    removeMechanic(mechanic.id)
-                                                }
+                                                onClick={() => removeMechanic(mechanic.id)}
                                             />
                                         </div>
                                     </Td>
@@ -807,16 +750,9 @@ const MechanicsDashboard = () => {
                     onClose={closeManageDialog}
                     onRequestClose={closeManageDialog}
                 >
-                    <h4>
-                        {editingMechanic
-                            ? 'Update mechanic'
-                            : 'Ajouter mécanicien'}
-                    </h4>
+                    <h4>{editingMechanic ? 'Update mechanic' : 'Ajouter mécanicien'}</h4>
 
-                    <Form
-                        className="mt-6"
-                        onSubmit={handleSubmit(submitMechanic)}
-                    >
+                    <Form className="mt-6" onSubmit={handleSubmit(submitMechanic)}>
                         <FormItem
                             label="Name"
                             invalid={Boolean(errors.name)}
@@ -888,9 +824,7 @@ const MechanicsDashboard = () => {
                                 render={({ field }) => (
                                     <Switcher
                                         checked={Boolean(field.value)}
-                                        onChange={(value) =>
-                                            field.onChange(value)
-                                        }
+                                        onChange={(value) => field.onChange(value)}
                                     />
                                 )}
                             />
@@ -900,12 +834,7 @@ const MechanicsDashboard = () => {
                             <Button type="button" onClick={closeManageDialog}>
                                 Annuler
                             </Button>
-
-                            <Button
-                                type="submit"
-                                variant="solid"
-                                loading={isSubmitting}
-                            >
+                            <Button type="submit" variant="solid" loading={isSubmitting}>
                                 {editingMechanic ? 'Update' : 'Ajouter'}
                             </Button>
                         </div>
@@ -921,8 +850,6 @@ const MechanicsDashboard = () => {
             >
                 <div className="mb-4">
                     <h4>{selectedMechanic?.name} Calendar</h4>
-
-                   
                 </div>
 
                 {calendarLoading && (
@@ -952,7 +879,6 @@ const MechanicsDashboard = () => {
                     selectAllow={(selectInfo) => {
                         const start = dayjs(selectInfo.start)
                         const end = start.add(1, 'hour')
-
                         return !isSlotOverlapping(start.format(), end.format())
                     }}
                 />
@@ -968,68 +894,42 @@ const MechanicsDashboard = () => {
 
                 <div className="flex flex-col gap-4">
                     <div>
-                        <label className="block mb-2 text-sm font-medium">
-                            Date
-                        </label>
-
-                        <DatePicker
-                            value={selectedDate}
-                            onChange={handleDateChange}
-                        />
+                        <label className="block mb-2 text-sm font-medium">Date</label>
+                        <DatePicker value={selectedDate} onChange={handleDateChange} />
                     </div>
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium">
-                            
-                            Hour
-                        </label>
-
-                        <Select<Option>
-                            options={hourOptions}
-                            placeholder={
-                                selectedDate
-                                    ? 'Choose an hour'
-                                    : 'Choose a date first'
-                            }
-                            isDisabled={!selectedDate}
-                            value={
-                                hourOptions.find(
-                                    (item) => item.value === selectedHour,
-                                ) || null
-                            }
-                            onChange={handleHourChange}
-                        />
+                        <label className="block mb-2 text-sm font-medium">Hour</label>
+                        <Select
+        options={maintenanceOptions}
+        placeholder="Choose maintenance"
+        isDisabled={!selectedVehicleId}
+        value={
+            maintenanceOptions
+                .flatMap((group) => group.options)
+                .find((item) => item.value === selectedMaintenanceId) || null
+        }
+        onChange={(option: any) => {
+            setSelectedMaintenanceId(option?.value || '')
+        }}
+    />
                     </div>
 
                     {selectedSlot && (
                         <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
                             Selected slot:{' '}
-                            <strong>
-                                {dayjs(selectedSlot.start).format(
-                                    'DD/MM/YYYY HH:mm',
-                                )}
-                            </strong>{' '}
-                            -{' '}
-                            <strong>
-                                {dayjs(selectedSlot.end).format('HH:mm')}
-                            </strong>
+                            <strong>{dayjs(selectedSlot.start).format('DD/MM/YYYY HH:mm')}</strong>
+                            {' '}-{' '}
+                            <strong>{dayjs(selectedSlot.end).format('HH:mm')}</strong>
                         </div>
                     )}
 
                     <div>
-                        <label className="block mb-2 text-sm font-medium">
-                            Vehicle
-                        </label>
-
+                        <label className="block mb-2 text-sm font-medium">Vehicle</label>
                         <Select<Option>
                             options={vehicleOptions}
                             placeholder="Choose vehicle"
-                            value={
-                                vehicleOptions.find(
-                                    (item) =>
-                                        item.value === selectedVehicleId,
-                                ) || null
-                            }
+                            value={vehicleOptions.find((item) => item.value === selectedVehicleId) || null}
                             onChange={handleVehicleChange}
                         />
                     </div>
@@ -1037,32 +937,31 @@ const MechanicsDashboard = () => {
                     <div>
                         <label className="block mb-2 text-sm font-medium">
                             Maintenance
+                            {maintenances.length > 0 && (
+                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                    (next due + AI recommendations)
+                                </span>
+                            )}
                         </label>
-
-                        <Select<Option>
-                            options={maintenanceOptions}
-                            placeholder="Choose maintenance"
-                            isDisabled={!selectedVehicleId}
-                            value={
-                                maintenanceOptions.find(
-                                    (item) =>
-                                        item.value === selectedMaintenanceId,
-                                ) || null
-                            }
-                            onChange={(option) =>
-                                setSelectedMaintenanceId(option?.value || '')
-                            }
-                        />
+                        <Select
+    options={maintenanceOptions}
+    placeholder="Choose maintenance"
+    isDisabled={!selectedVehicleId}
+    value={
+        maintenanceOptions
+            .flatMap((group) => group.options)
+            .find((item) => item.value === selectedMaintenanceId) || null
+    }
+    onChange={(option: any) => {
+        setSelectedMaintenanceId(option?.value || '')
+    }}
+/>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button
-                            type="button"
-                            onClick={() => setAppointmentOpen(false)}
-                        >
+                        <Button type="button" onClick={() => setAppointmentOpen(false)}>
                             Cancel
                         </Button>
-
                         <Button
                             variant="solid"
                             loading={saving}

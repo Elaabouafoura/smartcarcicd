@@ -1,7 +1,10 @@
 import { Controller, Get, Post, Param, UseGuards, Req } from '@nestjs/common'
 import { FailureClassificationService } from './failureClassification.service'
 import { FailureNotificationService } from 'src/failure-notification/failure-notification.service'
-import { AuthGuard } from '@nestjs/passport';
+import { AuthGuard } from '@nestjs/passport'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { Vehicle } from 'src/vehicle/entities/vehicle.entity'
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('failure-classification')
@@ -9,6 +12,9 @@ export class FailureClassificationController {
     constructor(
         private readonly failureService: FailureClassificationService,
         private readonly failureNotifService: FailureNotificationService,
+
+        @InjectRepository(Vehicle)
+        private readonly vehicleRepo: Repository<Vehicle>,
     ) {}
 
     @Get(':vehicleId/predict')
@@ -44,8 +50,6 @@ export class FailureClassificationController {
 
                 const result = await response.json()
 
-                console.log(`[${features.component}]`, JSON.stringify(result))
-
                 const riskLevel = result.risk_level ?? 'low_risk'
                 const riskScore =
                     result.risk_probabilities?.high_risk ??
@@ -80,6 +84,15 @@ export class FailureClassificationController {
         const allFeatures = await this.failureService.buildFeaturesAllComponents(vehicleId)
         const toSave: any[] = []
 
+        // 🔥 RÉCUPÉRATION DU VEHICULE (IMPORTANT)
+        const vehicle = await this.vehicleRepo.findOne({
+            where: { id: vehicleId },
+        })
+
+        const vehicleLabel = vehicle
+            ? `${vehicle.make} ${vehicle.model}${vehicle.plateNumber ? ` — ${vehicle.plateNumber}` : ''}`
+            : undefined
+
         for (const features of allFeatures) {
             try {
                 const response = await fetch(
@@ -102,7 +115,7 @@ export class FailureClassificationController {
                 if (riskLevel === 'high_risk' || riskScore >= 0.7) {
                     toSave.push({
                         vehicleId,
-                        vehicleLabel: undefined,
+                        vehicleLabel,
                         component: features.component,
                         riskScore,
                         riskLevel,

@@ -86,8 +86,8 @@ const Navigation = ({ toggleMode, mode }: NavigationProps) => {
                     {mode === MODE_LIGHT && (
                         <img
                             src="/img/logo/logo-light-full.png"
-                            width={120}
-                            height={40}
+                            width={200}
+                            height={65}
                             alt="logo"
                         />
                     )}

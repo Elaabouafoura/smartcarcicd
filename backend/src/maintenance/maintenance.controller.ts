@@ -21,7 +21,7 @@ import { MaintenanceService } from './maintenance.service';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
 import { UpdateNextMaintenanceDto } from './dto/update-next-maintenance.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-
+import { CreateAiMaintenanceDto } from './dto/create-ai-maintenance.dto'
 @Controller('vehicles/:vehicleId/maintenance')
 @UseGuards(AuthGuard('jwt'))
 export class MaintenanceController {
@@ -101,4 +101,11 @@ export class MaintenanceController {
   ) {
     return this.service.getMechanicBookings(mechanicId, date);
   }
+@Post('ai')
+async createFromAi(
+    @Req() req: Request & { user: { id: string } },
+    @Body() dto: CreateAiMaintenanceDto,
+) {
+    return this.service.createFromAi(req.user.id, dto)
+}
 }

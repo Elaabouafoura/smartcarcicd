@@ -35,6 +35,7 @@ import {
     apiGetMyVehicles,
     apiGetVehicleMaintenances,
     apiUpdateMaintenanceAppointment,
+    apiCreateAiMaintenance,
 } from '@/services/DashboardService'
 import type { DateSelectArg, DatesSetArg } from '@fullcalendar/core'
 import { apiGetAllRecommendations } from '@/services/AnomalyService'
@@ -517,49 +518,77 @@ const MechanicsDashboard = ({ aiRecommendedComponents = [] }: MechanicsDashboard
 }
 
     const confirmAppointment = async () => {
-        if (!selectedMechanic || !selectedSlot) return
-        if (isSlotOverlapping(selectedSlot.start, selectedSlot.end)) {
-            alert('Ce créneau est déjà réservé.')
-            return
-        }
-        if (
-            !isUuid(selectedMechanic.id) ||
-            !isUuid(selectedVehicleId) ||
-            !isUuid(selectedMaintenanceId)
-        ) {
-            alert('Veuillez choisir un véhicule et une maintenance.')
-            return
-        }
-        setSaving(true)
-        try {
-            await apiUpdateMaintenanceAppointment(
-                selectedVehicleId,
-                selectedMaintenanceId,
-                {
-                    mechanicId: selectedMechanic.id,
-                    appointmentStart: selectedSlot.start,
-                    appointmentEnd: selectedSlot.end,
-                },
-            )
-            setAppointmentOpen(false)
-            setSelectedSlot(null)
-            setSelectedDate(null)
-            setSelectedHour('')
-            setSelectedVehicleId('')
-            setSelectedMaintenanceId('')
-            setMaintenances([])
-            if (visibleStartDate && visibleEndDate) {
-                await loadMechanicBookings(selectedMechanic.id, visibleStartDate, visibleEndDate)
-            }
-        } catch (error: any) {
-            alert(
-                error?.response?.data?.message ||
-                    'Erreur lors de la confirmation du rendez-vous',
-            )
-        } finally {
-            setSaving(false)
-        }
+    if (!selectedMechanic || !selectedSlot) return
+
+    if (isSlotOverlapping(selectedSlot.start, selectedSlot.end)) {
+        alert('Ce créneau est déjà réservé.')
+        return
     }
+
+    let maintenanceId = selectedMaintenanceId
+
+    // Si recommandation IA → créer la maintenance d'abord
+    if (selectedMaintenanceId.startsWith('recommendation-')) {
+        const index = parseInt(selectedMaintenanceId.split('-')[1])
+        const action = recommendedActions[index]
+
+     try {
+    const created = await apiCreateAiMaintenance<{ id: string }>({
+        vehicleId: selectedVehicleId,
+        service_type: action,
+        source: 'ai_recommendation',
+    })
+    maintenanceId = created.id
+} catch (e: any) {
+    console.error('Erreur création maintenance IA:', e?.response?.data)
+    alert('Erreur: ' + JSON.stringify(e?.response?.data?.message || e?.message))
+    return
+}
+    }
+
+    if (
+        !isUuid(selectedMechanic.id) ||
+        !isUuid(selectedVehicleId) ||
+        !isUuid(maintenanceId)
+    ) {
+        alert('Veuillez choisir un véhicule et une maintenance.')
+        return
+    }
+
+    setSaving(true)
+    try {
+        await apiUpdateMaintenanceAppointment(
+            selectedVehicleId,
+            maintenanceId,
+            {
+                mechanicId: selectedMechanic.id,
+                appointmentStart: selectedSlot.start,
+                appointmentEnd: selectedSlot.end,
+            },
+        )
+        setAppointmentOpen(false)
+        setSelectedSlot(null)
+        setSelectedDate(null)
+        setSelectedHour('')
+        setSelectedVehicleId('')
+        setSelectedMaintenanceId('')
+        setMaintenances([])
+        if (visibleStartDate && visibleEndDate) {
+            await loadMechanicBookings(
+                selectedMechanic.id,
+                visibleStartDate,
+                visibleEndDate,
+            )
+        }
+    } catch (error: any) {
+        alert(
+            error?.response?.data?.message ||
+                'Erreur lors de la confirmation du rendez-vous',
+        )
+    } finally {
+        setSaving(false)
+    }
+}
 
     const filteredMechanics = useMemo(() => {
         const search = query.trim().toLowerCase()

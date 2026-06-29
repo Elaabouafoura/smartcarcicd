@@ -14,7 +14,7 @@ import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
 import { UpdateNextMaintenanceDto } from './dto/update-next-maintenance.dto';
 import { Upload, UploadStatus } from 'src/upload/entities/upload.entity';
 import { Mechanic } from 'src/mechanic/entities/mechanic.entity';
-
+import { CreateAiMaintenanceDto } from './dto/create-ai-maintenance.dto'
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -536,4 +536,20 @@ export class MaintenanceService {
       overdueCount: overdue.length,
     };
   }
+async createFromAi(
+    userId: string,
+    dto: CreateAiMaintenanceDto,
+): Promise<MaintenanceRecord> {
+    const vehicle = await this.checkOwnership(dto.vehicleId, userId)
+
+    const record = this.maintenanceRepo.create({
+        vehicle,
+        service_type: dto.service_type.trim(),
+        source: dto.source || 'ai_recommendation',
+        service_date: new Date(),
+        mileage_at_service_km: 0,
+    })
+
+    return this.maintenanceRepo.save(record)
+}
 }

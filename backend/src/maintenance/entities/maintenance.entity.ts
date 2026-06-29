@@ -60,4 +60,7 @@ export class MaintenanceRecord {
 
   @Column({ type: 'timestamptz', nullable: true })
   appointmentEnd?: Date;
+
+  @Column({ nullable: true, default: 'manual' })
+  source?: string;
 }

@@ -443,3 +443,18 @@ export async function apiGetMyMechanicProfile<T>() {
     const response = await AxiosBase.get<T>(`/mechanics/me`)
     return response.data
 }
+
+export const apiCreateAiMaintenance = <T>(data: {
+    vehicleId: string
+    service_type: string
+    source?: string
+}) =>
+    ApiService.fetchDataWithAxios<T>({
+        url: `/vehicles/${data.vehicleId}/maintenance/ai`,
+        method: 'post',
+        data: {
+            vehicleId: data.vehicleId,   // ✅ dans le body aussi
+            service_type: data.service_type,
+            source: data.source,
+        },
+    })
